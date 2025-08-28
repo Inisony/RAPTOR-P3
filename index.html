@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard RAPTOR-P3 - Pasmar 3</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="http://googleusercontent.com/file_content/2">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS & JS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            color: #1f2937; /* Default text color */
+        }
+        .leaflet-container {
+            height: 100%;
+            width: 100%;
+            border-radius: 0.5rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        .progress-bar-bg {
+            background-color: #e5e7eb;
+        }
+        .progress-bar {
+            transition: width 0.5s ease-in-out;
+        }
+        .data-input {
+            width: 60px; /* Adjusted width for larger numbers */
+            padding: 1px 3px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+            text-align: center;
+            background-color: #f9fafb;
+            font-size: 12px;
+            color: #1f2937;
+        }
+        .input-label {
+            display: flex;
+            justify-content: flex-start; /* Aligns items to the left */
+            gap: 0.5rem; /* Adds space between label and input */
+            align-items: center;
+            width: 100%;
+        }
+        .glow-effect {
+            filter: drop-shadow(0 0 3px #a855f7) drop-shadow(0 0 8px #a855f7);
+        }
+        .map-marker-m {
+            color: #1f2937;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1;
+        }
+        .leaflet-control-watermark {
+            font-size: 10px;
+            color: #9ca3af;
+            opacity: 0.7;
+        }
+        /* Initially hide main content */
+        #main-content {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Password Overlay -->
+    <div id="password-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl text-center w-full max-w-sm mx-4">
+            <h2 class="text-2xl font-bold mb-2 text-gray-800">RAPTOR-P3</h2>
+            <p class="text-gray-600 mb-6">Masukkan Password Untuk Akses</p>
+            <form id="password-form">
+                <input type="password" id="password-input" class="w-full px-4 py-2 border rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Password">
+                <p id="error-message" class="text-red-500 text-sm mb-4 h-5"></p>
+                <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded-md hover:bg-purple-700 transition-colors">Masuk</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <!-- Header -->
+        <header class="bg-white shadow-md border-b border-gray-200">
+            <div class="container mx-auto px-6 py-3 flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <svg class="h-12 w-12 text-purple-500" viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-family="Arial, sans-serif" font-size="95" font-weight="bold" class="glow-effect">R</text>
+                    </svg>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-bold text-gray-900">RAPTOR-P3</h1>
+                        <p class="text-sm text-gray-500">Readiness Of Army Personnel & Tactical Operations Resources Pasmar 3</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div id="current-time" class="text-sm text-gray-600 font-medium hidden md:block"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto p-4 md:p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <div class="lg:col-span-1 space-y-6">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Personnel Cards -->
+                        <div class="card p-4">
+                            <h2 class="text-xs font-medium text-gray-500">TOTAL PERSONEL</h2>
+                            <p id="total-personel" class="text-3xl font-bold text-blue-600 mt-1">0</p>
+                        </div>
+                        <div class="card p-4 flex flex-col justify-between">
+                            <div>
+                                <h2 class="text-xs font-medium text-gray-500">PERSONEL SIAP</h2>
+                                <p id="personel-siap" class="text-3xl font-bold text-green-600 mt-1">0</p>
+                            </div>
+                            <div class="mt-2">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-xs font-medium text-gray-700">Kesiapan</span>
+                                    <span id="personel-readiness-text" class="text-xs font-medium text-gray-700">0%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                    <div id="personel-readiness-bar" class="bg-green-600 h-1.5 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card p-4 flex flex-col justify-between">
+                            <div>
+                                <h2 class="text-xs font-medium text-gray-500">PERS TIDAK SIAP</h2>
+                                <p id="personel-tidak-siap" class="text-3xl font-bold text-red-600 mt-1">0</p>
+                            </div>
+                            <div class="mt-2">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-xs font-medium text-gray-700">Tidak Siap</span>
+                                    <span id="personel-not-ready-text" class="text-xs font-medium text-gray-700">0%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                    <div id="personel-not-ready-bar" class="bg-red-600 h-1.5 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Material Cards: RANPUR -->
+                        <div class="card p-4">
+                            <h2 class="text-xs font-medium text-gray-500">TOTAL RANPUR</h2>
+                            <p id="ranpur-total" class="text-3xl font-bold text-blue-600 mt-1">0</p>
+                        </div>
+                         <div class="card p-4 flex flex-col justify-between">
+                            <div>
+                                <h2 class="text-xs font-medium text-gray-500">RANPUR SIAP</h2>
+                                <p id="ranpur-siap" class="text-3xl font-bold text-green-600 mt-1">0</p>
+                            </div>
+                            <div class="mt-2">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-xs font-medium text-gray-700">Kesiapan</span>
+                                    <span id="ranpur-readiness-text" class="text-xs font-medium text-gray-700">0%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                    <div id="ranpur-readiness-bar" class="bg-green-600 h-1.5 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                         <div class="card p-4 flex flex-col justify-between">
+                            <div>
+                                <h2 class="text-xs font-medium text-gray-500">RANPUR TDK SIAP</h2>
+                                <p id="ranpur-tdk-siap" class="text-3xl font-bold text-red-600 mt-1">0</p>
+                            </div>
+                            <div class="mt-2">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-xs font-medium text-gray-700">Tidak Siap</span>
+                                    <span id="ranpur-not-ready-text" class="text-xs font-medium text-gray-700">0%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                    <div id="ranpur-not-ready-bar" class="bg-red-600 h-1.5 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Material Cards: Others -->
+                        <div class="card p-4">
+                            <h2 class="text-xs font-medium text-gray-500">SENJATA</h2>
+                            <p id="total-senjata" class="text-3xl font-bold text-gray-700 mt-1">0</p>
+                        </div>
+                        <div class="card p-4">
+                            <h2 class="text-xs font-medium text-gray-500">AMUNISI</h2>
+                            <p id="total-amunisi" class="text-3xl font-bold text-gray-700 mt-1">0</p>
+                        </div>
+                    </div>
+
+                    <div class="card p-6">
+                        <h2 class="text-lg font-bold text-gray-900 mb-4">Pemetaan Kekuatan Per Kesatuan</h2>
+                        <div id="unit-list" class="space-y-1 max-h-[60vh] overflow-y-auto pr-2">
+                            <!-- Unit data will be injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card lg:col-span-1 h-[85vh] p-4">
+                     <h2 class="text-lg font-bold text-gray-900 mb-4">Peta Posisi Markas</h2>
+                    <div id="map" class="w-full h-[calc(100%-40px)]"></div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+    
+    <script type="module">
+        // --- Firebase SDK Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, onSnapshot, updateDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Initial Data (used only for first-time setup) ---
+        const initialUnitsData = [
+            { id: "DENMAKO", name: "DENMAKO", total: 350, siap: 330, tank: 0, mobil: 13, motor: 2, ranpurSiap: 14, senjata: 400, amunisi: 10000 },
+            { id: "DENIPAM", name: "DENIPAM 3 MAR", total: 150, siap: 145, tank: 0, mobil: 2, motor: 0, ranpurSiap: 2, senjata: 180, amunisi: 5000 },
+            { id: "BRIGIF", name: "BRIGIF 3 MAR", total: 3000, siap: 2850, tank: 0, mobil: 45, motor: 5, ranpurSiap: 48, senjata: 3200, amunisi: 40000 },
+            { id: "MENKAV", name: "MENKAV 3 MAR", total: 800, siap: 750, tank: 30, rrf: 10, kapa: 5, mobil: 8, motor: 2, ranpurSiap: 50, senjata: 850, amunisi: 20000 },
+            { id: "MENART", name: "MENART 3 MAR", total: 750, siap: 720, tank: 0, mobil: 23, motor: 2, ranpurSiap: 24, senjata: 800, amunisi: 15000 },
+            { id: "MENBANPUR", name: "MENBANPUR 3 MAR", total: 900, siap: 880, tank: 0, mobil: 8, motor: 2, ranpurSiap: 10, senjata: 950, amunisi: 12000 },
+            { id: "YONIX", name: "YONMARHANLAN IX AMBON", total: 250, siap: 240, tank: 0, mobil: 2, motor: 1, ranpurSiap: 3, senjata: 300, amunisi: 5000 },
+            { id: "YONX", name: "YONMARHANLAN X JAYAPURA", total: 250, siap: 235, tank: 0, mobil: 2, motor: 0, ranpurSiap: 2, senjata: 300, amunisi: 4000 },
+            { id: "YONXI", name: "YONMARHANLAN XI MERAUKE", total: 250, siap: 245, tank: 0, mobil: 1, motor: 0, ranpurSiap: 1, senjata: 300, amunisi: 5000 },
+            { id: "YONXIV", name: "YONMARHANLAN XIV SORONG", total: 250, siap: 248, tank: 0, mobil: 2, motor: 0, ranpurSiap: 2, senjata: 300, amunisi: 4000 },
+        ];
+        
+        const baseLocations = [
+            { name: "Markas Komando Pasmar 3", location: [-0.8893, 131.2527], city: "Sorong" },
+            { name: "Yonmarhanlan IX", location: [-3.6582, 128.1932], city: "Ambon" },
+            { name: "Yonmarhanlan X", location: [-2.5367, 140.7078], city: "Jayapura" },
+            { name: "Yonmarhanlan XI", location: [-8.4804, 140.3959], city: "Merauke" },
+            { name: "Yonmarhanlan XIV", location: [-0.8893, 131.2527], city: "Sorong" }
+        ];
+
+        // --- App State ---
+        let db;
+        let unitsCollectionRef;
+
+        // --- UI Update Functions ---
+        function updateAllUI(currentUnitsData) {
+            populateUnitList(currentUnitsData);
+            updateSummary(currentUnitsData);
+            updateMaterialSummary(currentUnitsData);
+        }
+
+        function updateSummary(data) {
+            const totalPersonel = data.reduce((sum, unit) => sum + unit.total, 0);
+            const totalSiap = data.reduce((sum, unit) => sum + unit.siap, 0);
+            const totalTidakSiap = totalPersonel - totalSiap;
+            
+            document.getElementById('total-personel').textContent = totalPersonel.toLocaleString('id-ID');
+            document.getElementById('personel-siap').textContent = totalSiap.toLocaleString('id-ID');
+            document.getElementById('personel-tidak-siap').textContent = totalTidakSiap.toLocaleString('id-ID');
+
+            // Siap Percentage
+            const personelReadinessBar = document.getElementById('personel-readiness-bar');
+            const personelReadinessText = document.getElementById('personel-readiness-text');
+            const readyPercentage = totalPersonel > 0 ? (totalSiap / totalPersonel) * 100 : 0;
+            
+            personelReadinessText.textContent = `${readyPercentage.toFixed(1)}%`;
+            personelReadinessBar.style.width = `${readyPercentage}%`;
+
+            personelReadinessBar.classList.remove('bg-green-600', 'bg-yellow-500', 'bg-red-600');
+            if (readyPercentage >= 95) {
+                personelReadinessBar.classList.add('bg-green-600');
+            } else if (readyPercentage >= 90) {
+                personelReadinessBar.classList.add('bg-yellow-500');
+            } else {
+                personelReadinessBar.classList.add('bg-red-600');
+            }
+
+            // Tidak Siap Percentage
+            const personelNotReadyBar = document.getElementById('personel-not-ready-bar');
+            const personelNotReadyText = document.getElementById('personel-not-ready-text');
+            const notReadyPercentage = totalPersonel > 0 ? (totalTidakSiap / totalPersonel) * 100 : 0;
+
+            personelNotReadyText.textContent = `${notReadyPercentage.toFixed(1)}%`;
+            personelNotReadyBar.style.width = `${notReadyPercentage}%`;
+        }
+
+        function updateMaterialSummary(data) {
+            const totalRanpur = data.reduce((sum, unit) => {
+                return sum + (unit.tank || 0) + (unit.rrf || 0) + (unit.kapa || 0) + unit.mobil + unit.motor;
+            }, 0);
+            const totalRanpurSiap = data.reduce((sum, unit) => sum + (unit.ranpurSiap || 0), 0);
+            const totalRanpurTdkSiap = totalRanpur - totalRanpurSiap;
+            const totalSenjata = data.reduce((sum, unit) => sum + unit.senjata, 0);
+            const totalAmunisi = data.reduce((sum, unit) => sum + unit.amunisi, 0);
+
+            document.getElementById('ranpur-total').textContent = totalRanpur.toLocaleString('id-ID');
+            document.getElementById('ranpur-siap').textContent = totalRanpurSiap.toLocaleString('id-ID');
+            document.getElementById('ranpur-tdk-siap').textContent = totalRanpurTdkSiap.toLocaleString('id-ID');
+            document.getElementById('total-senjata').textContent = totalSenjata.toLocaleString('id-ID');
+            document.getElementById('total-amunisi').textContent = totalAmunisi.toLocaleString('id-ID');
+
+            // Siap Percentage
+            const ranpurReadinessBar = document.getElementById('ranpur-readiness-bar');
+            const ranpurReadinessText = document.getElementById('ranpur-readiness-text');
+            const readyPercentage = totalRanpur > 0 ? (totalRanpurSiap / totalRanpur) * 100 : 0;
+
+            ranpurReadinessText.textContent = `${readyPercentage.toFixed(1)}%`;
+            ranpurReadinessBar.style.width = `${readyPercentage}%`;
+
+            ranpurReadinessBar.classList.remove('bg-green-600', 'bg-yellow-500', 'bg-red-600');
+            if (readyPercentage >= 95) {
+                ranpurReadinessBar.classList.add('bg-green-600');
+            } else if (readyPercentage >= 90) {
+                ranpurReadinessBar.classList.add('bg-yellow-500');
+            } else {
+                ranpurReadinessBar.classList.add('bg-red-600');
+            }
+
+            // Tidak Siap Percentage
+            const ranpurNotReadyBar = document.getElementById('ranpur-not-ready-bar');
+            const ranpurNotReadyText = document.getElementById('ranpur-not-ready-text');
+            const notReadyPercentage = totalRanpur > 0 ? (totalRanpurTdkSiap / totalRanpur) * 100 : 0;
+
+            ranpurNotReadyText.textContent = `${notReadyPercentage.toFixed(1)}%`;
+            ranpurNotReadyBar.style.width = `${notReadyPercentage}%`;
+        }
+        
+        function populateUnitList(data) {
+            const unitListContainer = document.getElementById('unit-list');
+            const openUnits = new Set(JSON.parse(sessionStorage.getItem('openUnits') || '[]'));
+            unitListContainer.innerHTML = ''; 
+            
+            data.sort((a, b) => initialUnitsData.findIndex(u => u.id === a.id) - initialUnitsData.findIndex(u => u.id === b.id))
+                .forEach(unit => {
+                const isExpanded = openUnits.has(unit.id);
+                const tidakSiap = unit.total - unit.siap;
+                const readinessPercentage = unit.total > 0 ? (unit.siap / unit.total) * 100 : 0;
+                let progressBarColor = 'bg-green-500';
+                if (readinessPercentage < 95) progressBarColor = 'bg-yellow-500';
+                if (readinessPercentage < 90) progressBarColor = 'bg-red-500';
+                
+                let totalUnitRanpur;
+                let ranpurInputsHTML;
+
+                if (unit.id === 'MENKAV') {
+                    totalUnitRanpur = (unit.tank || 0) + (unit.rrf || 0) + (unit.kapa || 0) + unit.mobil + unit.motor;
+                    ranpurInputsHTML = `
+                        <label class="input-label"><span>Tank:</span> <input type="number" class="data-input" value="${unit.tank}" data-id="${unit.id}" data-field="tank"></label>
+                        <label class="input-label"><span>RRF:</span> <input type="number" class="data-input" value="${unit.rrf}" data-id="${unit.id}" data-field="rrf"></label>
+                        <label class="input-label"><span>KAPA:</span> <input type="number" class="data-input" value="${unit.kapa}" data-id="${unit.id}" data-field="kapa"></label>
+                        <label class="input-label"><span>Mobil:</span> <input type="number" class="data-input" value="${unit.mobil}" data-id="${unit.id}" data-field="mobil"></label>
+                        <label class="input-label col-span-2"><span>Motor:</span> <input type="number" class="data-input" value="${unit.motor}" data-id="${unit.id}" data-field="motor"></label>
+                    `;
+                } else {
+                    totalUnitRanpur = (unit.tank || 0) + unit.mobil + unit.motor;
+                    ranpurInputsHTML = `
+                        <label class="input-label"><span>Mobil:</span> <input type="number" class="data-input" value="${unit.mobil}" data-id="${unit.id}" data-field="mobil"></label>
+                        <label class="input-label"><span>Motor:</span> <input type="number" class="data-input" value="${unit.motor}" data-id="${unit.id}" data-field="motor"></label>
+                    `;
+                }
+                
+                const unitRanpurTdkSiap = totalUnitRanpur - unit.ranpurSiap;
+
+                const unitElementHTML = `
+                    <div class="unit-item border-t border-gray-200 pt-2" id="unit-${unit.id}">
+                        <div class="unit-header flex justify-between items-center cursor-pointer p-1 rounded hover:bg-gray-100">
+                            <p class="font-medium text-sm text-gray-800">${unit.name}</p>
+                            <div class="flex items-center space-x-2">
+                              <p class="readiness-percentage text-xs font-medium text-gray-700">${readinessPercentage.toFixed(1)}% Siap</p>
+                              <svg class="w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                              </svg>
+                            </div>
+                        </div>
+                        <div class="unit-details ${isExpanded ? '' : 'hidden'} mt-2 pl-1 space-y-3">
+                            <div class="progress-bar-bg w-full h-2 rounded-full overflow-hidden">
+                                <div class="progress-bar h-full rounded-full ${progressBarColor}" style="width: ${readinessPercentage}%"></div>
+                            </div>
+                            <div class="space-y-3 text-xs text-gray-600">
+                                <!-- Personel -->
+                                <div>
+                                    <div class="font-semibold text-gray-700 border-b border-gray-200 pb-1">PERSONEL</div>
+                                    <div class="grid grid-cols-2 gap-x-6 gap-y-2 mt-2">
+                                        <label class="input-label"><span>Total:</span> <input type="number" class="data-input" value="${unit.total}" data-id="${unit.id}" data-field="total"></label>
+                                        <label class="input-label"><span>Siap:</span> <input type="number" class="data-input" value="${unit.siap}" data-id="${unit.id}" data-field="siap"></label>
+                                        <div class="col-span-2 text-right">Tdk Siap: <span class="font-medium text-red-600">${tidakSiap.toLocaleString('id-ID')}</span></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Ranpur -->
+                                <div>
+                                    <div class="font-semibold text-gray-700 border-b border-gray-200 pb-1">RANPUR</div>
+                                    <div class="grid grid-cols-2 gap-x-6 gap-y-2 mt-2">
+                                        ${ranpurInputsHTML}
+                                        <div class="col-span-2">Total: <span class="font-medium text-blue-600">${totalUnitRanpur}</span></div>
+                                        <label class="input-label"><span>Siap:</span> <input type="number" class="data-input" value="${unit.ranpurSiap}" data-id="${unit.id}" data-field="ranpurSiap"></label>
+                                        <div class="col-span-2 text-right">Tdk Siap: <span class="font-medium text-red-600">${unitRanpurTdkSiap}</span></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Material -->
+                                <div>
+                                    <div class="font-semibold text-gray-700 border-b border-gray-200 pb-1">MATERIAL</div>
+                                    <div class="grid grid-cols-2 gap-x-6 gap-y-2 mt-2">
+                                        <label class="input-label"><span>Senjata:</span> <input type="number" class="data-input" value="${unit.senjata}" data-id="${unit.id}" data-field="senjata"></label>
+                                        <label class="input-label"><span>Amunisi:</span> <input type="number" class="data-input" value="${unit.amunisi}" data-id="${unit.id}" data-field="amunisi"></label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-end pt-2">
+                                <button class="save-unit-btn flex items-center space-x-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors" data-id="${unit.id}">
+                                    <svg class="save-icon w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                    </svg>
+                                    <span>Simpan</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                unitListContainer.insertAdjacentHTML('beforeend', unitElementHTML);
+            });
+        }
+        
+        // --- Firestore Functions ---
+        async function handleSaveClick(e) {
+            const saveButton = e.target.closest('.save-unit-btn');
+            if (!saveButton) return;
+
+            const unitId = saveButton.dataset.id;
+            const unitElement = document.getElementById(`unit-${unitId}`);
+            if (!unitElement) return;
+
+            const icon = saveButton.querySelector('.save-icon');
+            icon.classList.add('animate-spin');
+            saveButton.disabled = true;
+
+            const inputs = unitElement.querySelectorAll('.data-input');
+            const updateData = {};
+            inputs.forEach(input => {
+                updateData[input.dataset.field] = parseInt(input.value, 10) || 0;
+            });
+
+            // Validation
+            if (updateData.siap > updateData.total) {
+                updateData.siap = updateData.total;
+            }
+            let totalUnitRanpur;
+            if (unitId === 'MENKAV') {
+                totalUnitRanpur = (updateData.tank || 0) + (updateData.rrf || 0) + (updateData.kapa || 0) + updateData.mobil + updateData.motor;
+            } else {
+                totalUnitRanpur = (updateData.tank || 0) + updateData.mobil + updateData.motor;
+            }
+            
+            if (updateData.ranpurSiap > totalUnitRanpur) {
+                updateData.ranpurSiap = totalUnitRanpur;
+            }
+
+            const unitDocRef = doc(db, unitsCollectionRef.path, unitId);
+            try {
+                await updateDoc(unitDocRef, updateData);
+            } catch (error) {
+                console.error("Error saving data: ", error);
+            } finally {
+                icon.classList.remove('animate-spin');
+                saveButton.disabled = false;
+            }
+        }
+
+        async function seedInitialData() {
+            const querySnapshot = await getDocs(unitsCollectionRef);
+            if (querySnapshot.empty) {
+                console.log("Database is empty, seeding initial data...");
+                const batch = writeBatch(db);
+                initialUnitsData.forEach(unit => {
+                    const docRef = doc(db, unitsCollectionRef.path, unit.id);
+                    batch.set(docRef, unit);
+                });
+                await batch.commit();
+            }
+        }
+
+        // --- Map & Time Functions ---
+        function initializeMap() {
+            const map = L.map('map');
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            const raptorIcon = L.divIcon({ className: 'map-marker-m', html: 'M', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -26] });
+            const markerLocations = baseLocations.map(base => base.location);
+            const bounds = L.latLngBounds(markerLocations);
+            baseLocations.forEach(base => {
+                L.marker(base.location, { icon: raptorIcon }).addTo(map).bindPopup(`<b>${base.name}</b><br>${base.city}`);
+            });
+            map.fitBounds(bounds.pad(0.2));
+            L.Control.Watermark = L.Control.extend({
+                onAdd: function(map) {
+                    var div = L.DomUtil.create('div', 'leaflet-control-watermark');
+                    div.innerHTML = "ARES'd ft YNOS";
+                    return div;
+                },
+                onRemove: function(map) {}
+            });
+            L.control.watermark = function(opts) { return new L.Control.Watermark(opts); }
+            L.control.watermark({ position: 'bottomright' }).addTo(map);
+        }
+
+        function displayTime() {
+            const timeElement = document.getElementById('current-time');
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            timeElement.textContent = now.toLocaleDateString('id-ID', options) + ' WIT';
+        }
+        
+        // --- INITIALIZATION & PASSWORD LOGIC ---
+        function initializeDashboard() {
+            // Use provided Firebase config and app ID
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "DEMO", authDomain: "DEMO", projectId: "DEMO" };
+
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            const auth = getAuth(app);
+
+            // Authenticate user
+            const authPromise = typeof __initial_auth_token !== 'undefined' 
+                ? signInWithCustomToken(auth, __initial_auth_token) 
+                : signInAnonymously(auth);
+
+            authPromise.then(() => {
+                // Set up Firestore collection reference
+                unitsCollectionRef = collection(db, `/artifacts/${appId}/public/data/units`);
+                
+                // Seed data if collection is empty
+                return seedInitialData();
+            }).then(() => {
+                // Set up real-time listener
+                onSnapshot(unitsCollectionRef, (querySnapshot) => {
+                    let currentUnitsData = [];
+                    querySnapshot.forEach((doc) => {
+                        currentUnitsData.push({ id: doc.id, ...doc.data() });
+                    });
+                    updateAllUI(currentUnitsData);
+                });
+
+                // Initialize non-Firebase UI components
+                initializeMap();
+                displayTime();
+                setInterval(displayTime, 60000);
+
+                // Add event listeners
+                document.getElementById('unit-list').addEventListener('click', (e) => {
+                    handleSaveClick(e);
+                    const header = e.target.closest('.unit-header');
+                    if (header) {
+                        const details = header.nextElementSibling;
+                        const icon = header.querySelector('svg');
+                        const unitId = header.closest('.unit-item').id.replace('unit-', '');
+                        const openUnits = new Set(JSON.parse(sessionStorage.getItem('openUnits') || '[]'));
+                        
+                        if (details.classList.toggle('hidden')) {
+                            openUnits.delete(unitId);
+                        } else {
+                            openUnits.add(unitId);
+                        }
+                        icon.classList.toggle('rotate-180');
+                        sessionStorage.setItem('openUnits', JSON.stringify(Array.from(openUnits)));
+                    }
+                });
+            }).catch(error => {
+                console.error("Firebase initialization failed:", error);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const passwordForm = document.getElementById('password-form');
+            const passwordInput = document.getElementById('password-input');
+            const errorMessage = document.getElementById('error-message');
+            const passwordOverlay = document.getElementById('password-overlay');
+            const mainContent = document.getElementById('main-content');
+            const correctPassword = 'MARINIR-P3';
+
+            passwordForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (passwordInput.value === correctPassword) {
+                    passwordOverlay.style.display = 'none';
+                    mainContent.style.display = 'block';
+                    initializeDashboard();
+                } else {
+                    errorMessage.textContent = 'Password Salah!';
+                    passwordInput.value = '';
+                    setTimeout(() => {
+                        errorMessage.textContent = '';
+                    }, 2000);
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
